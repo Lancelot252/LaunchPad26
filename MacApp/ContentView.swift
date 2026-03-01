@@ -43,6 +43,7 @@ struct ContentView: View {
         .background(EscapeKeyHandler {
             NSApp.hide(nil)
         })
+        .background(DefaultFullscreenHandler())
     }
 
     private var searchBar: some View {
@@ -77,13 +78,22 @@ struct ContentView: View {
         GeometryReader { proxy in
             let columnsCount = 7
             let rowsCount = 5
-            let columnSpacing: CGFloat = 30
-            let rowSpacing: CGFloat = 34
-            let horizontalPadding: CGFloat = 24
-            let topPadding: CGFloat = 8
-            let bottomPadding: CGFloat = 52
-            let cellWidth = max((proxy.size.width - horizontalPadding * 2 - columnSpacing * CGFloat(columnsCount - 1)) / CGFloat(columnsCount), 80)
-            let cellHeight = max((proxy.size.height - topPadding - bottomPadding - rowSpacing * CGFloat(rowsCount - 1)) / CGFloat(rowsCount), 100)
+            let baseCell: CGFloat = 150
+            let baseColumnSpacing: CGFloat = 39
+            let baseRowSpacing: CGFloat = 34
+            let indicatorAreaHeight: CGFloat = 36
+            let pageHorizontalInset: CGFloat = 20
+            let pageVerticalInset: CGFloat = 8
+            let referenceGridWidth = CGFloat(columnsCount) * baseCell + CGFloat(columnsCount - 1) * baseColumnSpacing
+            let referenceGridHeight = CGFloat(rowsCount) * baseCell + CGFloat(rowsCount - 1) * baseRowSpacing
+            let availableWidth = max(proxy.size.width - pageHorizontalInset * 2, 1)
+            let availableHeight = max(proxy.size.height - indicatorAreaHeight - pageVerticalInset * 2, 1)
+            let rawScale = min(availableWidth / referenceGridWidth, availableHeight / referenceGridHeight)
+            let gridScale = min(max(rawScale, 0.72), 1.2)
+            let cellWidth = max(baseCell * gridScale, 84)
+            let cellHeight = max(baseCell * gridScale, 102)
+            let columnSpacing = max(baseColumnSpacing * gridScale, 12)
+            let rowSpacing = max(baseRowSpacing * gridScale, 14)
             let pageSize = columnsCount * rowsCount
             let pages = pagedItems(for: items, pageSize: pageSize)
             let gridColumns = Array(repeating: GridItem(.fixed(cellWidth), spacing: columnSpacing), count: columnsCount)
@@ -91,11 +101,15 @@ struct ContentView: View {
             let dragOffset = dragOffsetByContainer[pageKey] ?? 0
             let maxPage = max(pages.count - 1, 0)
             let pagingThreshold = proxy.size.width * 0.22
+            let gridWidth = CGFloat(columnsCount) * cellWidth + CGFloat(columnsCount - 1) * columnSpacing
+            let gridHeight = CGFloat(rowsCount) * cellHeight + CGFloat(rowsCount - 1) * rowSpacing
+            let tileScale = min(cellWidth / 150, cellHeight / 150)
 
             ZStack(alignment: .bottom) {
                 HStack(spacing: 0) {
                     ForEach(Array(pages.enumerated()), id: \.offset) { pageIndex, pageItems in
-                        VStack(alignment: .leading, spacing: 0) {
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
                             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: rowSpacing) {
                                 ForEach(pageItems) { item in
                                     AppTile(
@@ -104,8 +118,12 @@ struct ContentView: View {
                                             if item.isFolder {
                                                 currentPath.append(item.id)
                                             }
+                                        },
+                                        onOpenApp: { url in
+                                            launchApp(url)
                                         }
                                     )
+                                    .scaleEffect(tileScale, anchor: .top)
                                     .frame(width: cellWidth, height: cellHeight, alignment: .top)
                                     .onDrag {
                                         NSItemProvider(object: item.id.uuidString as NSString)
@@ -115,12 +133,12 @@ struct ContentView: View {
                                     }
                                 }
                             }
+                            .frame(width: gridWidth, height: gridHeight, alignment: .topLeading)
                             Spacer(minLength: 0)
                         }
                         .frame(width: proxy.size.width)
-                        .frame(maxHeight: .infinity, alignment: .topLeading)
-                        .padding(.horizontal, horizontalPadding)
-                        .padding(.top, topPadding)
+                        .frame(maxHeight: proxy.size.height - indicatorAreaHeight, alignment: .center)
+                        .padding(.vertical, pageVerticalInset)
                         .id(pageIndex)
                     }
                 }
@@ -168,7 +186,7 @@ struct ContentView: View {
                     .allowsHitTesting(false)
                 }
 
-                if pages.count > 1 {
+                if pages.count > 0 {
                     pageIndicator(pageCount: pages.count, currentPage: currentPage) { targetPage in
                         withAnimation(.snappy) {
                             pageIndexByContainer[pageKey] = min(max(targetPage, 0), maxPage)
@@ -185,30 +203,31 @@ struct ContentView: View {
     }
 
     private func folderOverlay(folder: AppItem) -> some View {
-        ZStack {
-            Color.black.opacity(0.35)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    currentPath = [root.id]
-                }
-                .onDrop(of: [UTType.plainText], isTargeted: $isDroppingToParent) { providers in
-                    handleDrop(providers: providers, target: nil, moveToParent: true)
-                }
+        GeometryReader { proxy in
+            ZStack {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        currentPath = [root.id]
+                    }
+                    .onDrop(of: [UTType.plainText], isTargeted: $isDroppingToParent) { providers in
+                        handleDrop(providers: providers, target: nil, moveToParent: true)
+                    }
 
-            VStack(spacing: 16) {
-                Text(folder.name)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.primary)
-                appGrid(items: filteredItems(for: folder.children), pageKey: folder.id, isInteractionEnabled: true)
+                VStack(spacing: 16) {
+                    Text(folder.name)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    appGrid(items: filteredItems(for: folder.children), pageKey: folder.id, isInteractionEnabled: true)
+                }
+                .padding(26)
+                .frame(width: proxy.size.width * 0.8, height: proxy.size.height * 0.8)
+                .background(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(.thinMaterial)
+                        .glassEffect(in: .rect(cornerRadius: 26))
+                )
             }
-            .padding(26)
-            .frame(maxWidth: 1500, maxHeight: 1120)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(.thinMaterial)
-                    .glassEffect(in: .rect(cornerRadius: 26))
-            )
         }
     }
 
@@ -327,11 +346,17 @@ struct ContentView: View {
             AppLayoutStore.save(root: root)
         }
     }
+
+    private func launchApp(_ url: URL) {
+        NSWorkspace.shared.open(url)
+        NSApp.hide(nil)
+    }
 }
 
 private struct AppTile: View {
     let item: AppItem
     let onOpenFolder: () -> Void
+    let onOpenApp: (URL) -> Void
     private let folderTileSize: CGFloat = 76
     private let folderPreviewSize: CGFloat = 69
     private let appTileSize: CGFloat = 92
@@ -393,7 +418,7 @@ private struct AppTile: View {
             if item.isFolder {
                 onOpenFolder()
             } else if let url = item.appURL {
-                NSWorkspace.shared.open(url)
+                onOpenApp(url)
             }
         }
     }
@@ -500,6 +525,8 @@ private struct TrackpadPagingMonitor: NSViewRepresentable {
         private weak var view: MonitorView?
         private var monitor: Any?
         private var accumulatedDeltaX: CGFloat = 0
+        private var isGestureActive: Bool = false
+        private var didTriggerPageForCurrentGesture: Bool = false
 
         init(onPageDelta: @escaping (Int) -> Void) {
             self.onPageDelta = onPageDelta
@@ -517,23 +544,67 @@ private struct TrackpadPagingMonitor: NSViewRepresentable {
                 let cursorInView = view.convert(cursorInWindow, from: nil)
                 guard view.bounds.contains(cursorInView) else { return event }
 
+                let phase = event.phase
+                let momentumPhase = event.momentumPhase
+                let didBeginGesture = phase == .began || momentumPhase == .began
+                let didEndGesture = phase == .ended || phase == .cancelled || momentumPhase == .ended || momentumPhase == .cancelled
+
+                if didBeginGesture {
+                    isGestureActive = true
+                    didTriggerPageForCurrentGesture = false
+                    accumulatedDeltaX = 0
+                } else if !isGestureActive {
+                    isGestureActive = true
+                    didTriggerPageForCurrentGesture = false
+                    accumulatedDeltaX = 0
+                }
+
                 let deltaX = event.scrollingDeltaX
                 let deltaY = event.scrollingDeltaY
-                guard abs(deltaX) > abs(deltaY), abs(deltaX) > 0 else { return event }
+                guard abs(deltaX) > abs(deltaY) * 1.5, abs(deltaX) > 0 else {
+                    if didEndGesture {
+                        isGestureActive = false
+                        didTriggerPageForCurrentGesture = false
+                        accumulatedDeltaX = 0
+                    }
+                    return event
+                }
 
-                accumulatedDeltaX += deltaX
-                let threshold: CGFloat = event.hasPreciseScrollingDeltas ? 32 : 3
+                if didTriggerPageForCurrentGesture {
+                    if didEndGesture {
+                        isGestureActive = false
+                        didTriggerPageForCurrentGesture = false
+                        accumulatedDeltaX = 0
+                    }
+                    return nil
+                }
+
+                if accumulatedDeltaX != 0, (accumulatedDeltaX > 0) != (deltaX > 0) {
+                    accumulatedDeltaX = deltaX
+                } else {
+                    accumulatedDeltaX += deltaX
+                }
+
+                let threshold: CGFloat = event.hasPreciseScrollingDeltas ? 120 : 12
 
                 if accumulatedDeltaX >= threshold {
                     onPageDelta(-1)
+                    didTriggerPageForCurrentGesture = true
                     accumulatedDeltaX = 0
                     return nil
                 }
 
                 if accumulatedDeltaX <= -threshold {
                     onPageDelta(1)
+                    didTriggerPageForCurrentGesture = true
                     accumulatedDeltaX = 0
                     return nil
+                }
+
+                if didEndGesture {
+                    isGestureActive = false
+                    didTriggerPageForCurrentGesture = false
+                    accumulatedDeltaX = 0
                 }
 
                 return nil
@@ -545,6 +616,86 @@ private struct TrackpadPagingMonitor: NSViewRepresentable {
                 NSEvent.removeMonitor(monitor)
             }
             monitor = nil
+        }
+    }
+}
+
+private struct DefaultFullscreenHandler: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.bindWindowIfNeeded(nsView.window)
+        context.coordinator.ensureFullscreenIfNeeded()
+    }
+
+    final class Coordinator {
+        private weak var window: NSWindow?
+        private var notificationObservers: [NSObjectProtocol] = []
+        private var isTogglingFullscreen: Bool = false
+
+        func bindWindowIfNeeded(_ window: NSWindow?) {
+            guard let window else { return }
+            guard self.window !== window else { return }
+
+            removeObservers()
+            self.window = window
+
+            notificationObservers.append(
+                NotificationCenter.default.addObserver(
+                    forName: NSWindow.didEnterFullScreenNotification,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    self?.isTogglingFullscreen = false
+                }
+            )
+
+            notificationObservers.append(
+                NotificationCenter.default.addObserver(
+                    forName: NSWindow.didExitFullScreenNotification,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    self?.isTogglingFullscreen = false
+                    self?.ensureFullscreenIfNeeded()
+                }
+            )
+        }
+
+        func ensureFullscreenIfNeeded() {
+            guard let window else { return }
+            guard !window.styleMask.contains(.fullScreen) else {
+                isTogglingFullscreen = false
+                return
+            }
+            guard !isTogglingFullscreen else { return }
+
+            isTogglingFullscreen = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let window = self.window else { return }
+                if !window.styleMask.contains(.fullScreen) {
+                    window.toggleFullScreen(nil)
+                } else {
+                    self.isTogglingFullscreen = false
+                }
+            }
+        }
+
+        deinit {
+            removeObservers()
+        }
+
+        private func removeObservers() {
+            for observer in notificationObservers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            notificationObservers.removeAll()
         }
     }
 }
