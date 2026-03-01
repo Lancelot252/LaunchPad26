@@ -1,18 +1,20 @@
-//
-//  MacAppApp.swift
-//  MacApp
-//
-//  Created by 252的Macbook Air on 2026/3/1.
-//
-
 import SwiftUI
 
 @main
 struct MacAppApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            SettingsView(settingsStore: appDelegate.settingsStore)
         }
-        .defaultSize(width: 1920, height: 1620)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    appDelegate.openSettingsWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }

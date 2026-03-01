@@ -1,0 +1,12 @@
+{
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/ContentView.swift" : {
+    "abi-baseline-json" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp.abi.json",
+    "const-values" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.swiftconstvalues",
+    "dependencies" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.d",
+    "diagnostics" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.dia",
+    "objc-header" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-Swift.h",
+    "swiftdoc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp.swiftdoc",
+    "swiftmodule" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp.swiftmodule",
+    "swiftsourceinfo" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp.swiftsourceinfo"
+  }
+}

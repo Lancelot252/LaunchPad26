@@ -1,0 +1,112 @@
+{
+  "source": "/Users/a252/Documents/code/swift/MacApp/MacApp/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "说明",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 14
+        }
+      },
+      {
+        "comment": "",
+        "key": "当前应用为 Agent 模式（无 Dock 图标）。",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 16
+        }
+      },
+      {
+        "comment": "",
+        "key": "快捷键可能与系统设置冲突，建议优先检查系统键盘快捷键。",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 17
+        }
+      },
+      {
+        "comment": "",
+        "key": "设置保存后立即生效。",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 18
+        }
+      },
+      {
+        "comment": "",
+        "key": "快捷键",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 36
+        }
+      },
+      {
+        "comment": "",
+        "key": "行为",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "系统",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "唤起热键",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 37
+        }
+      },
+      {
+        "comment": "",
+        "key": "启用显示/隐藏动画",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "失去焦点时自动隐藏",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "重建布局前二次确认",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "打开系统设置窗口",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 53
+        }
+      },
+      {
+        "comment": "",
+        "key": "设置",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 113
+        }
+      }
+    ]
+  },
+  "version": 1
+}

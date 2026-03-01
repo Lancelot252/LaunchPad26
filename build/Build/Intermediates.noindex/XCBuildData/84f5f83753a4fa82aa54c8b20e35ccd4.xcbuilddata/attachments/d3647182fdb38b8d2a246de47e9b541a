@@ -1,0 +1,46 @@
+{
+  "" : {
+    "const-values" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.swiftconstvalues",
+    "dependencies" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.d",
+    "diagnostics" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.dia",
+    "emit-module-dependencies" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary-emit-module.dia",
+    "pch" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacApp-primary.swiftdeps"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/ContentView.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/EditModeStateMachine.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/EditModeStateMachine.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/EditModeStateMachine.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/EditModeStateMachine.o"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/LaunchpadOverlayController.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/LaunchpadOverlayController.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/LaunchpadOverlayController.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/LaunchpadOverlayController.o"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/LaunchpadSettings.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/LaunchpadSettings.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/LaunchpadSettings.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/LaunchpadSettings.o"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/MacAppApp.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacAppApp.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacAppApp.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/MacAppApp.o"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/MacApp/SettingsView.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/MacApp.build/Release/MacApp.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/a252/Documents/code/swift/MacApp/build/Build/Intermediates.noindex/MacApp.build/Release/MacApp.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "source": "/Users/a252/Documents/code/swift/MacApp/MacApp/MacAppApp.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Settings…",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 13
+        }
+      }
+    ]
+  },
+  "version": 1
+}
