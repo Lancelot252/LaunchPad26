@@ -18,7 +18,6 @@ struct ContentView: View {
     @State private var isDroppingToParent = false
     @State private var searchText = ""
     @State private var pageIndexByContainer: [UUID: Int] = [:]
-    @State private var dragOffsetByContainer: [UUID: CGFloat] = [:]
     @State private var hiddenItemKeys: Set<String>
     @State private var folderNameDraft = ""
     @State private var isShowingSettingsPopover = false
@@ -182,146 +181,26 @@ struct ContentView: View {
         isInteractionEnabled: Bool,
         showsEmbeddedPageIndicator: Bool = true
     ) -> some View {
-        GeometryReader { proxy in
-            let columnsCount = 7
-            let rowsCount = 5
-            let baseCell: CGFloat = 150
-            let baseColumnSpacing: CGFloat = 39
-            let baseRowSpacing: CGFloat = 34
-            let indicatorAreaHeight: CGFloat = 36
-            let pageHorizontalInset: CGFloat = 20
-            let pageVerticalInset: CGFloat = 8
-            let referenceGridWidth = CGFloat(columnsCount) * baseCell + CGFloat(columnsCount - 1) * baseColumnSpacing
-            let referenceGridHeight = CGFloat(rowsCount) * baseCell + CGFloat(rowsCount - 1) * baseRowSpacing
-            let availableWidth = max(proxy.size.width - pageHorizontalInset * 2, 1)
-            let availableHeight = max(proxy.size.height - indicatorAreaHeight - pageVerticalInset * 2, 1)
-            let rawScale = min(availableWidth / referenceGridWidth, availableHeight / referenceGridHeight)
-            let gridScale = min(max(rawScale, 0.72), 1.2)
-            let cellWidth = max(baseCell * gridScale, 84)
-            let cellHeight = max(baseCell * gridScale, 102)
-            let columnSpacing = max(baseColumnSpacing * gridScale, 12)
-            let rowSpacing = max(baseRowSpacing * gridScale, 14)
-            let pageSize = columnsCount * rowsCount
-            let pages = pagedItems(for: items, pageSize: pageSize)
-            let gridColumns = Array(repeating: GridItem(.fixed(cellWidth), spacing: columnSpacing), count: columnsCount)
-            let currentPage = clampedPageIndex(for: pageKey, pageCount: pages.count)
-            let dragOffset = dragOffsetByContainer[pageKey] ?? 0
-            let maxPage = max(pages.count - 1, 0)
-            let pagingThreshold = proxy.size.width * 0.22
-            let gridWidth = CGFloat(columnsCount) * cellWidth + CGFloat(columnsCount - 1) * columnSpacing
-            let gridHeight = CGFloat(rowsCount) * cellHeight + CGFloat(rowsCount - 1) * rowSpacing
-            let tileScale = min(cellWidth / 150, cellHeight / 150)
-
-            ZStack(alignment: .bottom) {
-                HStack(spacing: 0) {
-                    ForEach(Array(pages.enumerated()), id: \.offset) { pageIndex, pageItems in
-                        VStack(spacing: 0) {
-                            Spacer(minLength: 0)
-                            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: rowSpacing) {
-                                ForEach(0..<pageSize, id: \.self) { slotIndex in
-                                    if slotIndex < pageItems.count {
-                                        let item = pageItems[slotIndex]
-                                        AppTile(
-                                            item: item,
-                                            isEditing: isEditing,
-                                            onOpenFolder: {
-                                                if item.isFolder {
-                                                    currentPath.append(item.id)
-                                                }
-                                            },
-                                            onOpenApp: { url in
-                                                onLaunchApp(url)
-                                            },
-                                            onDelete: {
-                                                hideItem(item.id)
-                                            },
-                                            onEnterEditMode: {
-                                                enterEditingMode(trigger: .longPress)
-                                            }
-                                        )
-                                        .scaleEffect(tileScale, anchor: .top)
-                                        .frame(width: cellWidth, height: cellHeight, alignment: .top)
-                                        .onDrag {
-                                            NSItemProvider(object: item.id.uuidString as NSString)
-                                        }
-                                        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
-                                            handleDrop(providers: providers, target: item, moveToParent: false)
-                                        }
-                                    } else {
-                                        Color.clear
-                                            .frame(width: cellWidth, height: cellHeight)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                handleBackgroundTap()
-                                            }
-                                    }
-                                }
-                            }
-                            .frame(width: gridWidth, height: gridHeight, alignment: .topLeading)
-                            Spacer(minLength: 0)
-                        }
-                        .frame(width: proxy.size.width)
-                        .frame(maxHeight: proxy.size.height - indicatorAreaHeight, alignment: .center)
-                        .padding(.vertical, pageVerticalInset)
-                        .id(pageIndex)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .offset(x: -CGFloat(currentPage) * proxy.size.width + dragOffset)
-                .animation(.snappy, value: currentPage)
-                .clipped()
-                .gesture(
-                    DragGesture(minimumDistance: 6)
-                        .onChanged { value in
-                            guard isInteractionEnabled else { return }
-                            dragOffsetByContainer[pageKey] = value.translation.width
-                        }
-                        .onEnded { value in
-                            guard isInteractionEnabled else { return }
-                            let predicted = value.predictedEndTranslation.width
-                            let actual = value.translation.width
-                            let movingLeft = predicted < -pagingThreshold || actual < -pagingThreshold
-                            let movingRight = predicted > pagingThreshold || actual > pagingThreshold
-
-                            if movingLeft {
-                                pageIndexByContainer[pageKey] = min(max(currentPage + 1, 0), maxPage)
-                            } else if movingRight {
-                                pageIndexByContainer[pageKey] = min(max(currentPage - 1, 0), maxPage)
-                            } else {
-                                pageIndexByContainer[pageKey] = min(max(currentPage, 0), maxPage)
-                            }
-
-                            withAnimation(.snappy) {
-                                dragOffsetByContainer[pageKey] = 0
-                            }
-                        }
-                )
-
-                if isInteractionEnabled {
-                    TrackpadPagingMonitor { delta in
-                        guard pages.count > 1 else { return }
-                        withAnimation(.snappy) {
-                            pageIndexByContainer[pageKey] = min(max(currentPage + delta, 0), maxPage)
-                            dragOffsetByContainer[pageKey] = 0
-                        }
-                    }
-                    .allowsHitTesting(false)
-                }
-
-                if showsEmbeddedPageIndicator && pages.count > 0 {
-                    pageIndicator(pageCount: pages.count, currentPage: currentPage) { targetPage in
-                        withAnimation(.snappy) {
-                            pageIndexByContainer[pageKey] = min(max(targetPage, 0), maxPage)
-                            dragOffsetByContainer[pageKey] = 0
-                        }
-                    }
-                    .padding(.bottom, 14)
-                }
-            }
-        }
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
-            handleDrop(providers: providers, target: nil, moveToParent: false)
-        }
+        AppGridPager(
+            items: items,
+            pageIndex: pageIndexBinding(for: pageKey),
+            isEditing: isEditing,
+            isInteractionEnabled: isInteractionEnabled,
+            showsEmbeddedPageIndicator: showsEmbeddedPageIndicator,
+            onOpenFolder: { item in
+                guard item.isFolder else { return }
+                currentPath.append(item.id)
+            },
+            onOpenApp: onLaunchApp,
+            onDelete: { item in
+                hideItem(item.id)
+            },
+            onEnterEditMode: {
+                enterEditingMode(trigger: .longPress)
+            },
+            onBackgroundTap: handleBackgroundTap,
+            onDrop: handleDrop
+        )
     }
 
     private func folderOverlay(folder: AppItem) -> some View {
@@ -560,7 +439,6 @@ struct ContentView: View {
         currentPath = [root.id]
         searchText = ""
         pageIndexByContainer.removeAll()
-        dragOffsetByContainer.removeAll()
         editModeState.syncExternalEditingState(false)
         isEditing = false
         saveLayout()
@@ -625,6 +503,13 @@ struct ContentView: View {
         return min(max(current, 0), maxPage)
     }
 
+    private func pageIndexBinding(for pageKey: UUID) -> Binding<Int> {
+        Binding(
+            get: { pageIndexByContainer[pageKey] ?? 0 },
+            set: { pageIndexByContainer[pageKey] = max(0, $0) }
+        )
+    }
+
     private var rootPageGroups: [[AppItem]] {
         pagedItems(for: filteredItems(for: root.children), pageSize: rootGridPageSize)
     }
@@ -641,7 +526,6 @@ struct ContentView: View {
                     pageIndicator(pageCount: pageCount, currentPage: rootCurrentPage) { targetPage in
                         withAnimation(.snappy) {
                             pageIndexByContainer[root.id] = min(max(targetPage, 0), max(pageCount - 1, 0))
-                            dragOffsetByContainer[root.id] = 0
                         }
                     }
 
@@ -708,6 +592,7 @@ struct ContentView: View {
 private struct AppTile: View {
     let item: AppItem
     let isEditing: Bool
+    let usesReducedEffects: Bool
     let onOpenFolder: () -> Void
     let onOpenApp: (URL) -> Void
     let onDelete: () -> Void
@@ -724,10 +609,15 @@ private struct AppTile: View {
         1.1 + Double(abs(item.id.hashValue % 4)) * 0.25
     }
 
+    @ViewBuilder
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isEditing)) { timeline in
+        if isEditing {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
+                tileContent
+                    .rotationEffect(.degrees(wobbleAngle(at: timeline.date)))
+            }
+        } else {
             tileContent
-                .rotationEffect(.degrees(wobbleAngle(at: timeline.date)))
         }
     }
 
@@ -735,30 +625,41 @@ private struct AppTile: View {
         VStack(spacing: 10) {
             ZStack {
                 if item.isFolder {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(.thinMaterial)
-                        .overlay(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.34),
-                                    Color.white.opacity(0.06)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        )
-                        .overlay(
+                    Group {
+                        if usesReducedEffects {
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
-                        )
-                        .glassEffect(in: .rect(cornerRadius: 24))
-                        .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 6)
-                        .frame(width: folderTileSize, height: folderTileSize)
+                                .fill(Color.white.opacity(0.16))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
+                                )
+                        } else {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(.thinMaterial)
+                                .overlay(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.34),
+                                            Color.white.opacity(0.06)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                                )
+                                .glassEffect(in: .rect(cornerRadius: 24))
+                                .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 6)
+                        }
+                    }
+                    .frame(width: folderTileSize, height: folderTileSize)
                 }
 
                 if item.isFolder {
-                    FolderPreview(items: Array(item.children.prefix(12)))
+                    FolderPreview(items: Array(item.children.prefix(12)), usesReducedEffects: usesReducedEffects)
                         .padding(6)
                         .frame(width: folderPreviewSize, height: folderPreviewSize)
                 } else if let icon = item.icon {
@@ -766,7 +667,12 @@ private struct AppTile: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: appTileSize, height: appTileSize)
-                        .shadow(color: .black.opacity(0.2), radius: 7, x: 0, y: 4)
+                        .shadow(
+                            color: usesReducedEffects ? .clear : .black.opacity(0.2),
+                            radius: usesReducedEffects ? 0 : 7,
+                            x: 0,
+                            y: usesReducedEffects ? 0 : 4
+                        )
                 } else {
                     Image(systemName: "app")
                         .font(.system(size: 25, weight: .semibold))
@@ -790,7 +696,7 @@ private struct AppTile: View {
             .contentShape(Rectangle())
             .scaleEffect(isPressingForEdit ? 0.94 : 1.0)
             .brightness(isPressingForEdit ? -0.08 : 0)
-            .animation(.easeOut(duration: 0.12), value: isPressingForEdit)
+            .animation(usesReducedEffects ? nil : .easeOut(duration: 0.12), value: isPressingForEdit)
             .onLongPressGesture(
                 minimumDuration: 0.45,
                 maximumDistance: 16,
@@ -811,7 +717,12 @@ private struct AppTile: View {
             Text(item.name)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.95))
-                .shadow(color: .black.opacity(0.35), radius: 2, x: 0, y: 1)
+                .shadow(
+                    color: usesReducedEffects ? .clear : .black.opacity(0.35),
+                    radius: usesReducedEffects ? 0 : 2,
+                    x: 0,
+                    y: usesReducedEffects ? 0 : 1
+                )
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
                 .frame(width: 138)
@@ -852,8 +763,267 @@ private struct AppTile: View {
     }
 }
 
+private struct AppGridPager: View {
+    let items: [AppItem]
+    @Binding var pageIndex: Int
+    let isEditing: Bool
+    let isInteractionEnabled: Bool
+    let showsEmbeddedPageIndicator: Bool
+    let onOpenFolder: (AppItem) -> Void
+    let onOpenApp: (URL) -> Void
+    let onDelete: (AppItem) -> Void
+    let onEnterEditMode: () -> Void
+    let onBackgroundTap: () -> Void
+    let onDrop: ([NSItemProvider], AppItem?, Bool) -> Bool
+
+    @GestureState private var dragTranslation: CGFloat = 0
+    @State private var trackpadOffset: CGFloat = 0
+    @State private var isTrackpadGestureActive = false
+    @State private var isAnimatingPageSnap = false
+    @State private var pageSnapWorkItem: DispatchWorkItem?
+
+    var body: some View {
+        GeometryReader { proxy in
+            let columnsCount = 7
+            let rowsCount = 5
+            let baseCell: CGFloat = 150
+            let baseColumnSpacing: CGFloat = 39
+            let baseRowSpacing: CGFloat = 34
+            let indicatorAreaHeight: CGFloat = 36
+            let pageHorizontalInset: CGFloat = 20
+            let pageVerticalInset: CGFloat = 8
+            let referenceGridWidth = CGFloat(columnsCount) * baseCell + CGFloat(columnsCount - 1) * baseColumnSpacing
+            let referenceGridHeight = CGFloat(rowsCount) * baseCell + CGFloat(rowsCount - 1) * baseRowSpacing
+            let availableWidth = max(proxy.size.width - pageHorizontalInset * 2, 1)
+            let availableHeight = max(proxy.size.height - indicatorAreaHeight - pageVerticalInset * 2, 1)
+            let rawScale = min(availableWidth / referenceGridWidth, availableHeight / referenceGridHeight)
+            let gridScale = min(max(rawScale, 0.72), 1.2)
+            let cellWidth = max(baseCell * gridScale, 84)
+            let cellHeight = max(baseCell * gridScale, 102)
+            let columnSpacing = max(baseColumnSpacing * gridScale, 12)
+            let rowSpacing = max(baseRowSpacing * gridScale, 14)
+            let pageSize = columnsCount * rowsCount
+            let pages = pagedItems(for: items, pageSize: pageSize)
+            let gridColumns = Array(repeating: GridItem(.fixed(cellWidth), spacing: columnSpacing), count: columnsCount)
+            let maxPage = max(pages.count - 1, 0)
+            let currentPage = min(max(pageIndex, 0), maxPage)
+            let gridWidth = CGFloat(columnsCount) * cellWidth + CGFloat(columnsCount - 1) * columnSpacing
+            let gridHeight = CGFloat(rowsCount) * cellHeight + CGFloat(rowsCount - 1) * rowSpacing
+            let tileScale = min(cellWidth / 150, cellHeight / 150)
+            let activeDragOffset = isInteractionEnabled ? (dragTranslation + trackpadOffset) : 0
+            let isPagingActive = abs(activeDragOffset) > 0.5 || isAnimatingPageSnap || isTrackpadGestureActive
+
+            ZStack(alignment: .bottom) {
+                HStack(spacing: 0) {
+                    ForEach(Array(pages.enumerated()), id: \.offset) { index, pageItems in
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            if abs(index - currentPage) <= 1 {
+                                LazyVGrid(columns: gridColumns, alignment: .leading, spacing: rowSpacing) {
+                                    ForEach(0..<pageSize, id: \.self) { slotIndex in
+                                        if slotIndex < pageItems.count {
+                                            let item = pageItems[slotIndex]
+                                            AppTile(
+                                                item: item,
+                                                isEditing: isEditing,
+                                                usesReducedEffects: isPagingActive,
+                                                onOpenFolder: {
+                                                    onOpenFolder(item)
+                                                },
+                                                onOpenApp: onOpenApp,
+                                                onDelete: {
+                                                    onDelete(item)
+                                                },
+                                                onEnterEditMode: onEnterEditMode
+                                            )
+                                            .scaleEffect(tileScale, anchor: .top)
+                                            .frame(width: cellWidth, height: cellHeight, alignment: .top)
+                                            .onDrag {
+                                                NSItemProvider(object: item.id.uuidString as NSString)
+                                            }
+                                            .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+                                                onDrop(providers, item, false)
+                                            }
+                                        } else {
+                                            Color.clear
+                                                .frame(width: cellWidth, height: cellHeight)
+                                                .contentShape(Rectangle())
+                                                .onTapGesture {
+                                                    onBackgroundTap()
+                                                }
+                                        }
+                                    }
+                                }
+                                .frame(width: gridWidth, height: gridHeight, alignment: .topLeading)
+                            } else {
+                                Color.clear
+                                    .frame(width: gridWidth, height: gridHeight)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .frame(width: proxy.size.width)
+                        .frame(maxHeight: proxy.size.height - indicatorAreaHeight, alignment: .center)
+                        .padding(.vertical, pageVerticalInset)
+                        .id(index)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .offset(x: -CGFloat(currentPage) * proxy.size.width + activeDragOffset)
+                .animation(.snappy, value: currentPage)
+                .clipped()
+                .gesture(
+                    DragGesture(minimumDistance: 6)
+                        .updating($dragTranslation) { value, state, _ in
+                            guard isInteractionEnabled else { return }
+                            state = value.translation.width
+                        }
+                        .onEnded { value in
+                            guard isInteractionEnabled else { return }
+
+                            let actual = value.translation.width
+                            let rawPage = CGFloat(currentPage) - (actual / max(proxy.size.width, 1))
+                            let nextPage = Int(rawPage.rounded())
+                            animateToPage(nextPage, maxPage: maxPage)
+                        }
+                )
+
+                if isInteractionEnabled {
+                    TrackpadPagingMonitor(
+                        onScrollDelta: { deltaX in
+                            guard pages.count > 1 else { return }
+                            isTrackpadGestureActive = true
+                            let proposed = trackpadOffset + deltaX
+                            trackpadOffset = clampedTrackpadOffset(
+                                proposed,
+                                pageWidth: max(proxy.size.width, 1),
+                                currentPage: currentPage,
+                                maxPage: maxPage
+                            )
+                        },
+                        onGestureEnd: {
+                            guard isTrackpadGestureActive else { return }
+                            isTrackpadGestureActive = false
+                            let rawPage = CGFloat(currentPage) - (trackpadOffset / max(proxy.size.width, 1))
+                            let targetPage = Int(rawPage.rounded())
+                            animateToPage(targetPage, maxPage: maxPage)
+                        }
+                    )
+                    .allowsHitTesting(false)
+                }
+
+                if showsEmbeddedPageIndicator && pages.count > 0 {
+                    pageIndicator(pageCount: pages.count, currentPage: currentPage) { targetPage in
+                        animateToPage(targetPage, maxPage: maxPage)
+                    }
+                    .padding(.bottom, 14)
+                }
+            }
+            .onAppear {
+                if pageIndex != currentPage {
+                    pageIndex = currentPage
+                }
+            }
+            .onChange(of: pages.count) { _, _ in
+                if pageIndex != currentPage {
+                    pageIndex = currentPage
+                }
+            }
+            .onDisappear {
+                pageSnapWorkItem?.cancel()
+                isTrackpadGestureActive = false
+                trackpadOffset = 0
+            }
+        }
+        .onDrop(of: [UTType.plainText], isTargeted: nil) { providers in
+            onDrop(providers, nil, false)
+        }
+    }
+
+    private func animateToPage(_ targetPage: Int, maxPage: Int) {
+        let clamped = min(max(targetPage, 0), maxPage)
+        pageSnapWorkItem?.cancel()
+        isAnimatingPageSnap = true
+
+        let workItem = DispatchWorkItem {
+            isAnimatingPageSnap = false
+            pageSnapWorkItem = nil
+        }
+        pageSnapWorkItem = workItem
+
+        withAnimation(.snappy) {
+            pageIndex = clamped
+            trackpadOffset = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.26, execute: workItem)
+    }
+
+    private func clampedTrackpadOffset(
+        _ offset: CGFloat,
+        pageWidth: CGFloat,
+        currentPage: Int,
+        maxPage: Int
+    ) -> CGFloat {
+        let maxRight = CGFloat(currentPage) * pageWidth
+        let maxLeft = -CGFloat(maxPage - currentPage) * pageWidth
+
+        if offset > maxRight {
+            return maxRight + (offset - maxRight) * 0.22
+        }
+
+        if offset < maxLeft {
+            return maxLeft + (offset - maxLeft) * 0.22
+        }
+
+        return offset
+    }
+
+    private func pagedItems(for items: [AppItem], pageSize: Int) -> [[AppItem]] {
+        guard pageSize > 0 else { return [items] }
+        guard !items.isEmpty else { return [[]] }
+
+        var pages: [[AppItem]] = []
+        var startIndex = items.startIndex
+        while startIndex < items.endIndex {
+            let endIndex = min(startIndex + pageSize, items.endIndex)
+            pages.append(Array(items[startIndex..<endIndex]))
+            startIndex = endIndex
+        }
+
+        return pages
+    }
+
+    private func pageIndicator(pageCount: Int, currentPage: Int, onSelect: @escaping (Int) -> Void) -> some View {
+        HStack(spacing: 8) {
+            ForEach(0..<pageCount, id: \.self) { index in
+                Button {
+                    onSelect(index)
+                } label: {
+                    Circle()
+                        .fill(index == currentPage ? Color.white.opacity(0.95) : Color.white.opacity(0.45))
+                        .frame(width: index == currentPage ? 9 : 7, height: index == currentPage ? 9 : 7)
+                        .scaleEffect(index == currentPage ? 1 : 0.9)
+                        .animation(.snappy, value: currentPage)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(.thinMaterial)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 4)
+    }
+}
+
 private struct FolderPreview: View {
     let items: [AppItem]
+    let usesReducedEffects: Bool
 
     var body: some View {
         GeometryReader { proxy in
@@ -874,7 +1044,12 @@ private struct FolderPreview: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: cellSize, height: cellSize)
-                            .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                            .shadow(
+                                color: usesReducedEffects ? .clear : .black.opacity(0.2),
+                                radius: usesReducedEffects ? 0 : 2,
+                                x: 0,
+                                y: usesReducedEffects ? 0 : 1
+                            )
                     } else {
                         Image(systemName: "app")
                             .font(.system(size: 8, weight: .semibold))
@@ -926,10 +1101,11 @@ private struct LaunchpadBackground: View {
 }
 
 private struct TrackpadPagingMonitor: NSViewRepresentable {
-    let onPageDelta: (Int) -> Void
+    let onScrollDelta: (CGFloat) -> Void
+    let onGestureEnd: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onPageDelta: onPageDelta)
+        Coordinator(onScrollDelta: onScrollDelta, onGestureEnd: onGestureEnd)
     }
 
     func makeNSView(context: Context) -> MonitorView {
@@ -939,7 +1115,8 @@ private struct TrackpadPagingMonitor: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: MonitorView, context: Context) {
-        context.coordinator.onPageDelta = onPageDelta
+        context.coordinator.onScrollDelta = onScrollDelta
+        context.coordinator.onGestureEnd = onGestureEnd
     }
 
     static func dismantleNSView(_ nsView: MonitorView, coordinator: Coordinator) {
@@ -949,15 +1126,16 @@ private struct TrackpadPagingMonitor: NSViewRepresentable {
     final class MonitorView: NSView {}
 
     final class Coordinator {
-        var onPageDelta: (Int) -> Void
+        var onScrollDelta: (CGFloat) -> Void
+        var onGestureEnd: () -> Void
         private weak var view: MonitorView?
         private var monitor: Any?
-        private var accumulatedDeltaX: CGFloat = 0
-        private var isGestureActive = false
-        private var didTriggerPageForCurrentGesture = false
+        private var isHorizontalGestureActive = false
+        private var finalizeGestureWorkItem: DispatchWorkItem?
 
-        init(onPageDelta: @escaping (Int) -> Void) {
-            self.onPageDelta = onPageDelta
+        init(onScrollDelta: @escaping (CGFloat) -> Void, onGestureEnd: @escaping () -> Void) {
+            self.onScrollDelta = onScrollDelta
+            self.onGestureEnd = onGestureEnd
         }
 
         func attach(to view: MonitorView) {
@@ -974,76 +1152,65 @@ private struct TrackpadPagingMonitor: NSViewRepresentable {
 
                 let phase = event.phase
                 let momentumPhase = event.momentumPhase
-                let didBeginGesture = phase == .began || momentumPhase == .began
-                let didEndGesture = phase == .ended || phase == .cancelled || momentumPhase == .ended || momentumPhase == .cancelled
-
-                if didBeginGesture {
-                    isGestureActive = true
-                    didTriggerPageForCurrentGesture = false
-                    accumulatedDeltaX = 0
-                } else if !isGestureActive {
-                    isGestureActive = true
-                    didTriggerPageForCurrentGesture = false
-                    accumulatedDeltaX = 0
-                }
+                let momentumStarted = momentumPhase == .began
+                let momentumEnded = momentumPhase == .ended || momentumPhase == .cancelled
+                let touchEnded = phase == .ended || phase == .cancelled
 
                 let deltaX = event.scrollingDeltaX
                 let deltaY = event.scrollingDeltaY
-                guard abs(deltaX) > abs(deltaY) * 1.5, abs(deltaX) > 0 else {
-                    if didEndGesture {
-                        isGestureActive = false
-                        didTriggerPageForCurrentGesture = false
-                        accumulatedDeltaX = 0
+                let isHorizontal = abs(deltaX) > abs(deltaY) * 1.2 && abs(deltaX) > 0
+
+                if momentumStarted {
+                    cancelDeferredGestureEnd()
+                }
+
+                if isHorizontal {
+                    isHorizontalGestureActive = true
+                    onScrollDelta(deltaX)
+                }
+
+                if isHorizontalGestureActive {
+                    if momentumEnded {
+                        finishGesture()
+                    } else if touchEnded && momentumPhase.isEmpty {
+                        // Give the momentum phase a short window to begin.
+                        scheduleDeferredGestureEnd()
                     }
-                    return event
                 }
 
-                if didTriggerPageForCurrentGesture {
-                    if didEndGesture {
-                        isGestureActive = false
-                        didTriggerPageForCurrentGesture = false
-                        accumulatedDeltaX = 0
-                    }
-                    return nil
-                }
-
-                if accumulatedDeltaX != 0, (accumulatedDeltaX > 0) != (deltaX > 0) {
-                    accumulatedDeltaX = deltaX
-                } else {
-                    accumulatedDeltaX += deltaX
-                }
-
-                let threshold: CGFloat = event.hasPreciseScrollingDeltas ? 120 : 12
-
-                if accumulatedDeltaX >= threshold {
-                    onPageDelta(-1)
-                    didTriggerPageForCurrentGesture = true
-                    accumulatedDeltaX = 0
-                    return nil
-                }
-
-                if accumulatedDeltaX <= -threshold {
-                    onPageDelta(1)
-                    didTriggerPageForCurrentGesture = true
-                    accumulatedDeltaX = 0
-                    return nil
-                }
-
-                if didEndGesture {
-                    isGestureActive = false
-                    didTriggerPageForCurrentGesture = false
-                    accumulatedDeltaX = 0
-                }
-
-                return nil
+                return isHorizontal ? nil : event
             }
         }
 
         func detach() {
+            cancelDeferredGestureEnd()
             if let monitor {
                 NSEvent.removeMonitor(monitor)
             }
             monitor = nil
+            isHorizontalGestureActive = false
+        }
+
+        private func scheduleDeferredGestureEnd() {
+            cancelDeferredGestureEnd()
+
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.finishGesture()
+            }
+            finalizeGestureWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: workItem)
+        }
+
+        private func cancelDeferredGestureEnd() {
+            finalizeGestureWorkItem?.cancel()
+            finalizeGestureWorkItem = nil
+        }
+
+        private func finishGesture() {
+            guard isHorizontalGestureActive else { return }
+            cancelDeferredGestureEnd()
+            isHorizontalGestureActive = false
+            onGestureEnd()
         }
     }
 }
